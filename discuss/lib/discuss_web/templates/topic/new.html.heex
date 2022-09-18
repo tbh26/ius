@@ -1,0 +1,17 @@
+<section>
+    <h2>new topic (form)</h2>
+    <%= form_for @changeset, Routes.topic_path(@conn, :create), fn f ->  %>
+
+        <label>
+            title: <%= text_input f, :title, placeholder: "title" %>
+        </label>
+
+        <%= submit "Submit" %>
+
+    <% end %>
+
+    <div>
+        example: <%= @example %>
+    </div>
+
+</section>

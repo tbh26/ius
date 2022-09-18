@@ -10,6 +10,30 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
+## commands executed
+Create project steps:
+
+```
+$ mix phx.new discuss 
+$ cd discuss
+$ mix ecto.create   # needs postgres running
+$ mix phx.server
+
+$ iex -S mix phx.server   # interactive elixir shell
+```
+
+Working on topics (cd $project_root):
+```
+$ mix phx.gen.schema Topic topics title:string
+$ mix ecto.migrate
+```
+Add topic(s) resource to router:
+```
+$ grep topics lib/discuss_web/router.ex 
+    resources "/topics", TopicController 
+$ mix phx.routes
+```
+
 ## Learn more
 
   * Official website: https://www.phoenixframework.org/
