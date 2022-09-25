@@ -41,6 +41,35 @@ defmodule Playground do
     quote do: fragment(lower("lower(?)", unquote(arg)))
   end
 
+  def album_by_artist(artist_name) do
+    from(a in "albums",
+      join: ar in "artists",
+      on: a.artist_id == ar.id,
+      where: ar.name == ^artist_name
+    )
+  end
+
+  def title_only(query) do
+    from(a in query, select: a.title)
+  end
+
+  def by_artist(query, artist_name) do
+    from(a in query,
+      join: ar in "artists",
+      on: a.artist_id == ar.id,
+      where: ar.name == ^artist_name
+    )
+  end
+
+  def with_tracks_longer_than(query, duration) do
+    from(a in query,
+      join: t in "tracks",
+      on: a.id == t.album_id,
+      where: t.duration > ^duration,
+      distinct: true
+    )
+  end
+
   def play do
     ###############################################
     #
@@ -48,9 +77,18 @@ defmodule Playground do
     #
     ##############################################
 
+    ## first steps
+    new_order = "New order"
+    # Repo.insert(%Artist{name: new_order})
+    # retrieve the record
+    no = Repo.get_by(Artist, name: new_order)
+    IO.inspect(no)
+
+    ##
     # MusicDB.Repo.aggregate("artists", :count, :name)
 
-    ### basic query
+    ### Chapter II, Querying your database
+    ## basic query
     # query = from "artists", select: [:name]
     query = Ecto.Query.from("artists", select: [:name])
     # Ecto.Adapters.SQL.to_sql(:all, Repo, query)
@@ -284,9 +322,84 @@ defmodule Playground do
 
     IO.inspect(has_named_binding?(miles_albums_query2, :albums))
 
-    ## composing queries with functions..
+    ## composing queries with functions
     #
+    bq =
+      album_by_artist("Bobby Hutcherson")
+      |> title_only
 
+    IO.inspect(Repo.all(bq))
+
+    #
+    bq2 =
+      "albums"
+      |> by_artist("Bobby Hutcherson")
+      |> title_only
+
+    IO.inspect(Repo.all(bq2))
+
+    mq =
+      "albums"
+      |> by_artist("Miles Davis")
+      |> with_tracks_longer_than(720)
+      |> title_only
+
+    IO.inspect(Repo.all(mq))
+
+    ## fun with; or_where
+    albums_by_miles =
+      from(a in "albums",
+        join: ar in "artists",
+        on: a.artist_id == ar.id,
+        where: ar.name == "Miles Davis"
+      )
+
+    mbq = from([a, ar] in albums_by_miles, where: ar.name == "Bobby Hutcherson", select: a.title)
+    IO.inspect(Repo.all(mbq))
+
+    mbq2 =
+      from(a in "albums",
+        join: ar in "artists",
+        on: a.artist_id == ar.id,
+        where: ar.name == "Miles Davis" or ar.name == "Bobby Hutcherson",
+        select: %{artist: ar.name, album: a.title}
+      )
+
+    IO.inspect(Repo.all(mbq2))
+
+    mbq3 =
+      from([a, ar] in albums_by_miles,
+        or_where: ar.name == "Bobby Hutcherson",
+        select: %{artist: ar.name, album: a.title}
+      )
+
+    IO.inspect(Repo.all(mbq3))
+
+    ## other ways
+    #
+    Repo.update_all("artists", set: [updated_at: DateTime.utc_now()])
+    all_art = from("artists", select: [:id, :name, :updated_at])
+    IO.inspect(Repo.all(all_art))
+
+    # or (lq1 + 3) or 2
+    lq1 = from(t in "tracks", where: t.title == "Autum Leaves")
+    # 1
+    Repo.update_all(lq1, set: [title: "Autumn Leave"])
+
+    from(t in "tracks", where: t.title == "Autumn Leaves")
+    # 2
+    |> Repo.update_all(set: [title: "Autum Leaves"])
+
+    from(t in "tracks", where: t.title == "Autumn Leave")
+    # 3
+    |> Repo.update_all(set: [title: "Autumn Leaves"])
+
+    like_autum_query = from(t in "tracks", where: like(t.title, ^"Autum%"), select: [:id, :title])
+    IO.inspect(Repo.all(like_autum_query))
+
+    ## delete_all demo:
+    # from(t in "tracks", where: t.title == "Autumn Leaves")
+    #  |> Repo.delete_all
 
     ### last statement; "done"
     IO.puts("done")
