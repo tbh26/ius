@@ -50,7 +50,7 @@ defmodule Playground do
     IO.inspect(Repo.all(artist_query))
 
     #### last statement; "done"
-    IO.puts("done")
+    IO.puts("done (ch3)")
   end
 end
 
