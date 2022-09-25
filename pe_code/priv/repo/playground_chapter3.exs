@@ -29,6 +29,8 @@ import Ecto.Query
 import Ecto.Changeset
 
 defmodule Playground do
+  alias MusicDB.Track
+
   # this is just to hide the "unused import" warnings while we play
   def this_hides_warnings do
     [Artist, Album, Track, Genre, Repo, Multi, Log, AlbumWithEmbeds, ArtistEmbed, TrackEmbed]
@@ -49,8 +51,76 @@ defmodule Playground do
     artist_query = from("artists", select: [:id, :name, :inserted_at])
     IO.inspect(Repo.all(artist_query))
 
+    ### writing queries with schemas
+    #
+    artist_id = "1"
+    query = from("artists", where: [id: type(^artist_id, :integer)], select: [:id, :name])
+    IO.inspect(Repo.all(query))
+
+    #
+    track_id = "1"
+    tq = from(Track, where: [id: ^track_id])
+    IO.inspect(Repo.all(tq))
+
+    #
+    tq2 = from(Track, where: [id: ^track_id], select: [:id, :title])
+    IO.inspect(Repo.all(tq2))
+
+    #
+    tq3 = from(t in Track, where: t.id == ^track_id)
+    IO.inspect(Repo.all(tq3))
+
+    ## when NOT to use schemas (ie: reports?)
+    rq =
+      from(a in "artists",
+        join: al in "albums",
+        on: a.id == al.artist_id,
+        group_by: a.name,
+        select: %{artist: a.name, number_of_albums: count(al.id)}
+      )
+
+    IO.inspect(Repo.all(rq))
+
+    ### inserting and deleting schemas
+    # insert
+    IO.inspect(Repo.insert_all("artists", [[name: "John Coltrane 01"]]))
+    IO.inspect(Repo.insert(%Artist{name: "John Coltrane 11"}))
+    IO.inspect(Repo.insert_all(Artist, [[name: "John Coltrane 21"]]))
+
+    aq = from(Artist, select: [:id, :name])
+    IO.inspect(Repo.all(aq))
+
+    # delete
+    IO.inspect(
+      from(a in "artists", where: a.name == "John Coltrane 21")
+      |> Repo.delete_all()
+    )
+
+    aq2 = Repo.get_by(Artist, name: "John Coltrane 11")
+    IO.inspect(Repo.delete(aq2))
+
+    IO.inspect(
+      from(Artist, where: [name: "John Coltrane 01"])
+      |> Repo.delete_all()
+    )
+
+    aq = from(Artist, select: [:id, :name])
+    IO.inspect(Repo.all(aq))
+
     #### last statement; "done"
     IO.puts("done (ch3)")
+  end
+end
+
+defmodule MusicDB.Track do
+  use Ecto.Schema
+
+  schema "tracks" do
+    field(:title, :string)
+    field(:duration, :integer)
+    field(:index, :integer)
+    field(:number_of_plays, :integer)
+    timestamps()
   end
 end
 
